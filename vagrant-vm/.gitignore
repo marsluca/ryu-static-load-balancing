@@ -1,7 +1,0 @@
-.vagrant*
-cache
-*.log
-*.pyc
-
-sdn-lab/draft
-sdn-lab/test
