@@ -8,12 +8,12 @@ Example:
 #### Server:
 	netserver &
 
-## Requests distrigution test:
+## Requests distribution test:
 #### Client:
-	./requests_distrigution_server.sh <CLIENT_NAME> <SERVER_IP> <REQUEST_NUMBER>
+	./requests_distribution_server.sh <CLIENT_NAME> <SERVER_IP> <REQUEST_NUMBER>
 Example:
-	./requests_distrigution_server.sh H2 10.0.1.100 100
+	./requests_distribution_server.sh H2 10.0.1.100 100
 #### Server:
-	./requests_distrigution_server.sh <SERVER_NAME>
+	./requests_distribution_server.sh <SERVER_NAME>
 Example:
-	./requests_distrigution_server.sh H1
+	./requests_distribution_server.sh H1

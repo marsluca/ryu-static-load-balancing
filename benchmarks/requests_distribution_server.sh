@@ -6,7 +6,7 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-filename="request_distrigution.log"
+filename="request_distribution.log"
 
 echo When you finish to test press Ctrl+C to show the stats
 #Stop when find the HEAD request
