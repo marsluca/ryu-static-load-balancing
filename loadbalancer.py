@@ -42,7 +42,7 @@ class LoadBalancer(app_manager.RyuApp):
 
         ippub = '10.0.1.100'
         macpub = '00:00:00:00:01:00' #controllare in specifica!!! da aggiungere
-        macsrc = eth.src
+        macsrc = pkt_eth.src
 
         # Consideriamo solo i pacchetti IPv4 TCP
         if (pkt_ipv4 is not None and pkt_tcp is not None):
