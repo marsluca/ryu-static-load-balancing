@@ -35,13 +35,81 @@ class LoadBalancer(app_manager.RyuApp):
 
         # Estraiamo gli header del pacchetto
         pkt = packet.Packet(msg.data)
-        #pkt_ethernet = pkt.get_protocol(ethernet.ethernet)     ci serve, dato che stiamo facendo l'hash solo su IP_src e port_src?
-        pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
+        pkt_eth = pkt.get_protocol(ethernet.ethernet)
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         pkt_arp = pkt.get_protocol(arp.arp)
 
+        ippub = '10.0.1.100'
+        macpub = '00:00:00:00:01:00' #controllare in specifica!!! da aggiungere
+        macsrc = eth.src
+
         # Consideriamo solo i pacchetti IPv4 TCP
         if (pkt_ipv4 is not None and pkt_tcp is not None):
-            # gestione pacchetto..
+            # gestione pacchetto.. (Lucio)
+            server = hash((pkt_ipv4.src, pkt_tcp.src_port))%2
+            server = server+1 # per avere 1 o 2 come valori
+            ipdst = "10.0.1."+str(server)
+            macdst = "00:00:00:00:01:0"+str(server)
+            out_port = server # // IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
+            
+            # Applico il flowmod di ingresso
+            match = parser.OFPMatch(
+                eth_src=macsrc,
+                eth_dst=macdst
+            )
+            inst = [
+                parser.OFPInstructionActions(
+                    ofproto.OFPIT_APPLY_ACTIONS,
+                    actions
+                )
+            ]
+            ofmsg = parser.OFPFlowMod(
+                datapath=datapath,
+                hard_timeout=120
+                priority=50,
+                match=match,
+                instructions=inst,
+            )
+            datapath.send_msg(ofmsg)
+            
+            # Applico il flowmod di uscita
+            match = parser.OFPMatch(
+                eth_src=macdst,
+                eth_dst=macsrc
+            )
+            inst = [
+                parser.OFPInstructionActions(
+                    ofproto.OFPIT_APPLY_ACTIONS,
+                    actions
+                )
+            ]
+            ofmsg = parser.OFPFlowMod(
+                datapath=datapath,
+                hard_timeout=120
+                priority=50,
+                match=match,
+                instructions=inst,
+            )
+            datapath.send_msg(ofmsg)
+
+            #modifichiamo il pacchetto con i nuovi dati
+            pkt_ethernet.dst=macdst
+            pkt_ipv4.dst=ipdst
+            pkt_tcp.csum=0
+            pkt.serialize()
+            # faccio il packet out
+            actions = [parser.OFPActionOutput(out_port)]
+
+            # assert msg.buffer_id == ofproto.OFP_NO_BUFFER non so se bisogna metterlo, nelle lezioni non c'era, ma sui .py della cartella sdn-lab si
+
+            out = parser.OFPPacketOut(
+                datapath=datapath,
+                buffer_id=msg.buffer_id,
+                in_port=in_port,
+                actions=actions,
+                data=msg.data)
+            datapath.send_msg(out)
+        
+        # Droppo i pacchetti non inerenti alla specifica
         else:
             return
