@@ -36,6 +36,7 @@ class LoadBalancer(app_manager.RyuApp):
         # Estraiamo gli header del pacchetto
         pkt = packet.Packet(msg.data)
         pkt_eth = pkt.get_protocol(ethernet.ethernet)
+        pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         pkt_arp = pkt.get_protocol(arp.arp)
 
