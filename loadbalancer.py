@@ -59,6 +59,7 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_src=macsrc,
                 eth_dst=macdst
             )
+            actions = [parser.OFPActionOutput(out_port)]
             inst = [
                 parser.OFPInstructionActions(
                     ofproto.OFPIT_APPLY_ACTIONS,
@@ -79,6 +80,7 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_src=macdst,
                 eth_dst=macsrc
             )
+            actions = [parser.OFPActionOutput(out_port)]
             inst = [
                 parser.OFPInstructionActions(
                     ofproto.OFPIT_APPLY_ACTIONS,
@@ -95,7 +97,7 @@ class LoadBalancer(app_manager.RyuApp):
             datapath.send_msg(ofmsg)
 
             #modifichiamo il pacchetto con i nuovi dati
-            pkt_ethernet.dst=macdst
+            pkt_eth.dst=macdst
             pkt_ipv4.dst=ipdst
             pkt_tcp.csum=0
             pkt.serialize()
