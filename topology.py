@@ -16,8 +16,8 @@ class Topology(Topo):
         switch1 = self.addSwitch('SW1')
  
         # Links
-        self.addLink(server1, switch1, port2=1, cls=TCLink, bw=10000, delay='1ms')
-        self.addLink(server2, switch1, port2=2, cls=TCLink, bw=10000, delay='1ms')
+        self.addLink(server1, switch1, port2=1, cls=TCLink, bw=1000, delay='1ms')
+        self.addLink(server2, switch1, port2=2, cls=TCLink, bw=1000, delay='1ms')
         self.addLink(host1, switch1, cls=TCLink, bw=1000, delay='5ms')
         self.addLink(host2, switch1, cls=TCLink, bw=1000, delay='5ms')
         self.addLink(host3, switch1, cls=TCLink, bw=1000, delay='5ms')
