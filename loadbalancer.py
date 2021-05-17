@@ -57,9 +57,13 @@ class LoadBalancer(app_manager.RyuApp):
             # Applico il flowmod di ingresso
             match = parser.OFPMatch(
                 eth_src=macsrc,
-                eth_dst=macdst
+                eth_dst=macpub
             )
-            actions = [parser.OFPActionOutput(out_port)]
+            actions = [
+                parser.OFPActionSetField(eth_src=macdst),
+                parser.OFPActionSetField(ipv4_src=ipdst),
+                parser.OFPActionOutput(out_port)
+            ]
             inst = [
                 parser.OFPInstructionActions(
                     ofproto.OFPIT_APPLY_ACTIONS,
@@ -80,7 +84,11 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_src=macdst,
                 eth_dst=macsrc
             )
-            actions = [parser.OFPActionOutput(out_port)]
+            actions = [
+                parser.OFPActionSetField(eth_src=macpub),
+                parser.OFPActionSetField(ipv4_src=ippub),
+                parser.OFPActionOutput(in_port)
+            ]
             inst = [
                 parser.OFPInstructionActions(
                     ofproto.OFPIT_APPLY_ACTIONS,
