@@ -46,6 +46,7 @@ class LoadBalancer(app_manager.RyuApp):
 
         # Consideriamo solo i pacchetti IPv4 TCP
         if (pkt_ipv4 is not None and pkt_tcp is not None):
+
             # gestione pacchetto.. (Lucio)
             server = hash((pkt_ipv4.src, pkt_tcp.src_port))%2
             server = server+1 # per avere 1 o 2 come valori
@@ -98,6 +99,7 @@ class LoadBalancer(app_manager.RyuApp):
             pkt_ipv4.dst=ipdst
             pkt_tcp.csum=0
             pkt.serialize()
+            
             # faccio il packet out
             actions = [parser.OFPActionOutput(out_port)]
 
