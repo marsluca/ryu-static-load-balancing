@@ -112,9 +112,6 @@ class LoadBalancer(app_manager.RyuApp):
             
             # faccio il packet out
             actions = [parser.OFPActionOutput(out_port)]
-
-            # assert msg.buffer_id == ofproto.OFP_NO_BUFFER non so se bisogna metterlo, nelle lezioni non c'era, ma sui .py della cartella sdn-lab si
-
             out = parser.OFPPacketOut(
                 datapath=datapath,
                 buffer_id=msg.buffer_id,
