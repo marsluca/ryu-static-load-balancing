@@ -67,7 +67,7 @@ class LoadBalancer(app_manager.RyuApp):
             ]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
-                hard_timeout=120
+                hard_timeout=120,
                 priority=50,
                 match=match,
                 instructions=inst,
@@ -87,7 +87,7 @@ class LoadBalancer(app_manager.RyuApp):
             ]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
-                hard_timeout=120
+                hard_timeout=120,
                 priority=50,
                 match=match,
                 instructions=inst,
