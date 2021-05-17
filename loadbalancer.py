@@ -46,6 +46,7 @@ class LoadBalancer(app_manager.RyuApp):
 
         # Consideriamo solo i pacchetti IPv4 TCP
         if (pkt_ipv4 is not None and pkt_tcp is not None):
+
             # gestione pacchetto.. (Lucio)
             server = hash((pkt_ipv4.src, pkt_tcp.src_port))%2
             server = server+1 # per avere 1 o 2 come valori
@@ -58,6 +59,7 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_src=macsrc,
                 eth_dst=macdst
             )
+            actions = [parser.OFPActionOutput(out_port)]
             inst = [
                 parser.OFPInstructionActions(
                     ofproto.OFPIT_APPLY_ACTIONS,
@@ -66,7 +68,7 @@ class LoadBalancer(app_manager.RyuApp):
             ]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
-                hard_timeout=120
+                hard_timeout=120,
                 priority=50,
                 match=match,
                 instructions=inst,
@@ -78,6 +80,7 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_src=macdst,
                 eth_dst=macsrc
             )
+            actions = [parser.OFPActionOutput(out_port)]
             inst = [
                 parser.OFPInstructionActions(
                     ofproto.OFPIT_APPLY_ACTIONS,
@@ -86,7 +89,7 @@ class LoadBalancer(app_manager.RyuApp):
             ]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
-                hard_timeout=120
+                hard_timeout=120,
                 priority=50,
                 match=match,
                 instructions=inst,
@@ -94,10 +97,11 @@ class LoadBalancer(app_manager.RyuApp):
             datapath.send_msg(ofmsg)
 
             #modifichiamo il pacchetto con i nuovi dati
-            pkt_ethernet.dst=macdst
+            pkt_eth.dst=macdst
             pkt_ipv4.dst=ipdst
             pkt_tcp.csum=0
             pkt.serialize()
+            
             # faccio il packet out
             actions = [parser.OFPActionOutput(out_port)]
 
