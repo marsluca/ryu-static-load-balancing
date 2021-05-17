@@ -1,4 +1,5 @@
 from mininet.topo import Topo
+from mininet.link import TCLink
 
 class Topology(Topo):
  
@@ -15,12 +16,12 @@ class Topology(Topo):
         switch1 = self.addSwitch('SW1')
  
         # Links
-        self.addLink(host1, switch1, bw=1000, delay='5ms')
-        self.addLink(host2, switch1, bw=1000, delay='5ms')
-        self.addLink(host3, switch1, bw=1000, delay='5ms')
-        self.addLink(host4, switch1, bw=1000, delay='5ms')
-        self.addLink(host5, switch1, bw=1000, delay='5ms')
-        self.addLink(server1, switch1, bw=1000, delay='5ms')
-        self.addLink(server2, switch1, bw=1000, delay='5ms')
+        self.addLink(host1, switch1, cls=TCLink, bw=1000, delay='5ms')
+        self.addLink(host2, switch1, cls=TCLink, bw=1000, delay='5ms')
+        self.addLink(host3, switch1, cls=TCLink, bw=1000, delay='5ms')
+        self.addLink(host4, switch1, cls=TCLink, bw=1000, delay='5ms')
+        self.addLink(host5, switch1, cls=TCLink, bw=1000, delay='5ms')
+        self.addLink(server1, switch1, cls=TCLink, bw=1000, delay='1ms')
+        self.addLink(server2, switch1, cls=TCLink, bw=1000, delay='1ms')
  
 topos = { 'topology': ( lambda: Topology() ) }
