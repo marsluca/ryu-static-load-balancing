@@ -74,27 +74,9 @@ class LoadBalancer(app_manager.RyuApp):
             )
             datapath.send_msg(ofmsg)
 
-            #FlowMod in uscita per il server 1
+            #FlowMod in uscita
             match = parser.OFPMatch(in_port=out_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
-                                    ipv4_src=server1_ip, eth_dst=server1_mac)
-            actions = [
-                parser.OFPActionSetField(eth_src=virtual_mac),
-                parser.OFPActionSetField(ipv4_src=virtual_ip),
-                parser.OFPActionOutput(in_port)
-            ]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-            ofmsg = parser.OFPFlowMod(
-                datapath=datapath,
-                hard_timeout=120,
-                priority=50,
-                match=match,
-                instructions=inst,
-            )
-            datapath.send_msg(ofmsg)
-
-            #FlowMod in uscita per il server 2
-            match = parser.OFPMatch(in_port=out_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
-                                    ipv4_src=server2_ip, eth_dst=server2_mac)
+                                    ipv4_src=ipdst, eth_dst=macdst)
             actions = [
                 parser.OFPActionSetField(eth_src=virtual_mac),
                 parser.OFPActionSetField(ipv4_src=virtual_ip),
