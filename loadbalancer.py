@@ -2,6 +2,7 @@ from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
+from ryu.lib.packet.ether_types import ETH_TYPE_IP
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet, ether_types
@@ -40,8 +41,12 @@ class LoadBalancer(app_manager.RyuApp):
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         pkt_arp = pkt.get_protocol(arp.arp)
 
-        ippub = '10.0.1.100'
-        macpub = '00:00:00:00:01:00' #controllare in specifica!!! da aggiungere
+        virtual_ip = '10.0.1.100'
+        virtual_mac = '00:00:00:00:01:00' #controllare in specifica!!! da aggiungere
+        server1_ip = '10.0.1.1'
+        server1_mac = '00:00:00:00:01:01'
+        server2_ip = '10.0.1.2'
+        server2_mac = '00:00:00:00:01:02'
         macsrc = pkt_eth.src
 
         # Consideriamo solo i pacchetti IPv4 TCP
@@ -53,23 +58,13 @@ class LoadBalancer(app_manager.RyuApp):
             ipdst = "10.0.1."+str(server)
             macdst = "00:00:00:00:01:0"+str(server)
             out_port = server # // IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
-            
-            # Applico il flowmod di ingresso
-            match = parser.OFPMatch(
-                eth_src=macsrc,
-                eth_dst=macpub
-            )
-            actions = [
-                parser.OFPActionSetField(eth_src=macdst),
-                parser.OFPActionSetField(ipv4_src=ipdst),
-                parser.OFPActionOutput(out_port)
-            ]
-            inst = [
-                parser.OFPInstructionActions(
-                    ofproto.OFPIT_APPLY_ACTIONS,
-                    actions
-                )
-            ]
+            match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
+                                    ipv4_dst=virtual_ip, eth_dst=virtual_mac)
+            print("macsrc is: " + macsrc) #debug
+            print("macdst is: " + pkt_eth.dst)
+            print("server is: " + str(server))
+            actions = [parser.OFPActionSetField(eth_dst=macdst), parser.OFPActionSetField(ipv4_dst=ipdst), parser.OFPActionOutput(out_port)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
                 hard_timeout=120,
@@ -78,23 +73,34 @@ class LoadBalancer(app_manager.RyuApp):
                 instructions=inst,
             )
             datapath.send_msg(ofmsg)
-            
-            # Applico il flowmod di uscita
-            match = parser.OFPMatch(
-                eth_src=macdst,
-                eth_dst=macsrc
-            )
+
+            #FlowMod in uscita per il server 1
+            match = parser.OFPMatch(in_port=out_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
+                                    ipv4_src=server1_ip, eth_dst=server1_mac)
             actions = [
-                parser.OFPActionSetField(eth_src=macpub),
-                parser.OFPActionSetField(ipv4_src=ippub),
+                parser.OFPActionSetField(eth_src=virtual_mac),
+                parser.OFPActionSetField(ipv4_src=virtual_ip),
                 parser.OFPActionOutput(in_port)
             ]
-            inst = [
-                parser.OFPInstructionActions(
-                    ofproto.OFPIT_APPLY_ACTIONS,
-                    actions
-                )
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            ofmsg = parser.OFPFlowMod(
+                datapath=datapath,
+                hard_timeout=120,
+                priority=50,
+                match=match,
+                instructions=inst,
+            )
+            datapath.send_msg(ofmsg)
+
+            #FlowMod in uscita per il server 2
+            match = parser.OFPMatch(in_port=out_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
+                                    ipv4_src=server2_ip, eth_dst=server2_mac)
+            actions = [
+                parser.OFPActionSetField(eth_src=virtual_mac),
+                parser.OFPActionSetField(ipv4_src=virtual_ip),
+                parser.OFPActionOutput(in_port)
             ]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
                 hard_timeout=120,
@@ -109,7 +115,8 @@ class LoadBalancer(app_manager.RyuApp):
             pkt_ipv4.dst=ipdst
             pkt_tcp.csum=0
             pkt.serialize()
-            
+
+            assert msg.buffer_id == ofproto.OFP_NO_BUFFER
             # faccio il packet out
             actions = [parser.OFPActionOutput(out_port)]
             out = parser.OFPPacketOut(
