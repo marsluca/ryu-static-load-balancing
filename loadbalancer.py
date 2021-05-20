@@ -15,11 +15,6 @@ class LoadBalancer(app_manager.RyuApp):
     VIRTUAL_IP = '10.0.1.100'
     VIRTUAL_MAC = '00:00:00:00:01:00'  # controllare in specifica!!! da aggiungere
 
-    SERVER1_IP = '10.0.1.1'
-    SERVER1_MAC = '00:00:00:00:01:01'
-    SERVER2_IP = '10.0.1.2'
-    SERVER2_MAC = '00:00:00:00:01:02'
-
     # CONFIG_DISPATCHER, gestione Features Reply
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -74,10 +69,9 @@ class LoadBalancer(app_manager.RyuApp):
                 )
                 reply_packet.serialize()
                 actions = [parser.OFPActionOutput(in_port)]
-                assert msg.buffer_id == ofproto.OFP_NO_BUFFER
                 packet_out = parser.OFPPacketOut(
                     datapath=datapath,
-                    buffer_id=msg.buffer_id,
+                    buffer_id=ofproto.OFP_NO_BUFFER,
                     in_port=ofproto.OFPP_ANY,
                     data=reply_packet.data,
                     actions=actions
@@ -94,6 +88,8 @@ class LoadBalancer(app_manager.RyuApp):
             ipdst = "10.0.1." + str(server)
             macdst = "00:00:00:00:01:0" + str(server)
             out_port = server  # // IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
+
+            # FlowMod in ingresso
             match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
                                     ipv4_dst=self.VIRTUAL_IP, eth_dst=self.VIRTUAL_MAC)
             print("macsrc is: " + macsrc)  # debug
@@ -136,12 +132,11 @@ class LoadBalancer(app_manager.RyuApp):
             pkt_tcp.csum = 0
             pkt.serialize()
 
-            assert msg.buffer_id == ofproto.OFP_NO_BUFFER
             # faccio il packet out
             actions = [parser.OFPActionOutput(out_port)]
             out = parser.OFPPacketOut(
                 datapath=datapath,
-                buffer_id=msg.buffer_id,
+                buffer_id=ofproto.OFP_NO_BUFFER,
                 in_port=in_port,
                 actions=actions,
                 data=msg.data
