@@ -74,8 +74,10 @@ class LoadBalancer(app_manager.RyuApp):
                 )
                 reply_packet.serialize()
                 actions = [parser.OFPActionOutput(in_port)]
+                assert msg.buffer_id == ofproto.OFP_NO_BUFFER
                 packet_out = parser.OFPPacketOut(
                     datapath=datapath,
+                    buffer_id=msg.buffer_id,
                     in_port=ofproto.OFPP_ANY,
                     data=reply_packet.data,
                     actions=actions
@@ -112,7 +114,7 @@ class LoadBalancer(app_manager.RyuApp):
 
             # FlowMod in uscita
             match = parser.OFPMatch(in_port=out_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
-                                    ipv4_src=ipdst, eth_dst=macdst)
+                                    ipv4_src=ipdst, eth_src=macdst)
             actions = [
                 parser.OFPActionSetField(eth_src=self.VIRTUAL_MAC),
                 parser.OFPActionSetField(ipv4_src=self.VIRTUAL_IP),
