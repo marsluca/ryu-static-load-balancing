@@ -4,7 +4,7 @@ from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.lib.packet.ether_types import ETH_TYPE_IP
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet
+from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import tcp, arp, ipv4
 
@@ -19,7 +19,7 @@ class LoadBalancer(app_manager.RyuApp):
     SERVER1_MAC = '00:00:00:00:01:01'
     SERVER2_IP = '10.0.1.2'
     SERVER2_MAC = '00:00:00:00:01:02'
-    
+
     # CONFIG_DISPATCHER, gestione Features Reply
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -48,13 +48,44 @@ class LoadBalancer(app_manager.RyuApp):
         pkt_eth = pkt.get_protocol(ethernet.ethernet)
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         pkt_tcp = pkt.get_protocol(tcp.tcp)
-        pkt_arp = pkt.get_protocol(arp.arp)
 
         macsrc = pkt_eth.src
 
+        # Handle ARP
+        if pkt_eth.ethertype == ether_types.ETH_TYPE_ARP:
+            pkt_arp = pkt.get_protocol(arp.arp)
+            if pkt_arp.dst_ip == self.VIRTUAL_IP and pkt_arp.opcode == arp.ARP_REQUEST:
+                self.logger.info("[ARP] Request recived")
+                reply_packet = packet.Packet()
+                reply_packet.add_protocol(
+                    ethernet.ethernet(
+                        dst=pkt_arp.src_mac,
+                        src=self.VIRTUAL_MAC,
+                        ethertype=ether_types.ETH_TYPE_ARP
+                    )
+                )
+                reply_packet.add_protocol(
+                    arp.arp(opcode=arp.ARP_REPLY,
+                            src_mac=self.VIRTUAL_MAC,
+                            src_ip=self.VIRTUAL_IP,
+                            dst_mac=pkt_arp.src_mac,
+                            dst_ip=pkt_arp.src_ip
+                            )
+                )
+                reply_packet.serialize()
+                actions = [parser.OFPActionOutput(in_port)]
+                packet_out = parser.OFPPacketOut(
+                    datapath=datapath,
+                    in_port=ofproto.OFPP_ANY,
+                    data=reply_packet.data,
+                    actions=actions
+                )
+                datapath.send_msg(packet_out)
+                self.logger.info("[ARP] Reply sent!")
+                return
+
         # Consideriamo solo i pacchetti IPv4 TCP
         if pkt_ipv4 is not None and pkt_tcp is not None:
-
             # gestione pacchetto.. (Lucio)
             server = hash((pkt_ipv4.src, pkt_tcp.src_port)) % 2
             server = server + 1  # per avere 1 o 2 come valori
@@ -66,7 +97,9 @@ class LoadBalancer(app_manager.RyuApp):
             print("macsrc is: " + macsrc)  # debug
             print("macdst is: " + pkt_eth.dst)
             print("server is: " + str(server))
-            actions = [parser.OFPActionSetField(eth_dst=macdst), parser.OFPActionSetField(ipv4_dst=ipdst), parser.OFPActionOutput(out_port)]
+            actions = [parser.OFPActionSetField(eth_dst=macdst),
+                       parser.OFPActionSetField(ipv4_dst=ipdst),
+                       parser.OFPActionOutput(out_port)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
             ofmsg = parser.OFPFlowMod(
                 datapath=datapath,
@@ -109,7 +142,8 @@ class LoadBalancer(app_manager.RyuApp):
                 buffer_id=msg.buffer_id,
                 in_port=in_port,
                 actions=actions,
-                data=msg.data)
+                data=msg.data
+            )
             datapath.send_msg(out)
         
         # Droppo i pacchetti non inerenti alla specifica
