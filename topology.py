@@ -6,11 +6,11 @@ class Topology(Topo):
     def build(self):
  
         # Hosts and switches
-        host1 = self.addHost('H1', ip='10.0.0.1/8', mac="00:00:00:00:00:01")
-        host2 = self.addHost('H2', ip='10.0.0.2/8', mac="00:00:00:00:00:02")
-        host3 = self.addHost('H3', ip='10.0.0.3/8', mac="00:00:00:00:00:03")
-        host4 = self.addHost('H4', ip='10.0.0.4/8', mac="00:00:00:00:00:04")
-        host5 = self.addHost('H5', ip='10.0.0.5/8', mac="00:00:00:00:00:05")
+        host1 = self.addHost('H1')
+        host2 = self.addHost('H2')
+        host3 = self.addHost('H3')
+        host4 = self.addHost('H4')
+        host5 = self.addHost('H5')
         server1 = self.addHost('SRV1', ip='10.0.1.1/8', mac="00:00:00:00:01:01")
         server2 = self.addHost('SRV2', ip='10.0.1.2/8', mac="00:00:00:00:01:02")
         switch1 = self.addSwitch('SW1')
