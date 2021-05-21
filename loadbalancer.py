@@ -7,6 +7,7 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import tcp, arp, ipv4
+from ryu.topology.api import get_all_switch, get_all_link, get_all_host
 
 
 class LoadBalancer(app_manager.RyuApp):
@@ -49,20 +50,29 @@ class LoadBalancer(app_manager.RyuApp):
         # Handle ARP
         if pkt_eth.ethertype == ether_types.ETH_TYPE_ARP:
             pkt_arp = pkt.get_protocol(arp.arp)
-            if pkt_arp.dst_ip == self.VIRTUAL_IP and pkt_arp.opcode == arp.ARP_REQUEST:
+            if pkt_arp.opcode == arp.ARP_REQUEST:
+                if pkt_arp.dst_ip == self.VIRTUAL_IP:
+                    mac_dst_arp=self.VIRTUAL_MAC
+                else:                    
+                    for host in get_all_host(self):
+                        if pkt_arp.dst_ip in host.ipv4:
+                            mac_dst_arp = host.mac
+                            break # qualcosa di piu' carino del break? Bolchini docet
+                        else:
+                            return
                 self.logger.info("[ARP] Request recived")
                 reply_packet = packet.Packet()
                 reply_packet.add_protocol(
                     ethernet.ethernet(
                         dst=pkt_arp.src_mac,
-                        src=self.VIRTUAL_MAC,
+                        src=mac_dst_arp,
                         ethertype=ether_types.ETH_TYPE_ARP
                     )
                 )
                 reply_packet.add_protocol(
                     arp.arp(opcode=arp.ARP_REPLY,
-                            src_mac=self.VIRTUAL_MAC,
-                            src_ip=self.VIRTUAL_IP,
+                            src_mac=mac_dst_arp,
+                            src_ip=pkt_arp.dst_ip,
                             dst_mac=pkt_arp.src_mac,
                             dst_ip=pkt_arp.src_ip
                             )
