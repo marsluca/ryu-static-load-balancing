@@ -53,7 +53,7 @@ class LoadBalancer(app_manager.RyuApp):
             if pkt_arp.opcode == arp.ARP_REQUEST:
                 if pkt_arp.dst_ip == self.VIRTUAL_IP:
                     mac_dst_arp=self.VIRTUAL_MAC
-                else:                    
+                else:
                     for host in get_all_host(self):
                         if pkt_arp.dst_ip in host.ipv4:
                             mac_dst_arp = host.mac
