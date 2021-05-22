@@ -57,9 +57,11 @@ class LoadBalancer(app_manager.RyuApp):
                     for host in get_all_host(self):
                         if pkt_arp.dst_ip in host.ipv4:
                             mac_dst_arp = host.mac
+                            print("macdst arp loop is: " + mac_dst_arp)
                             break # qualcosa di piu' carino del break? Bolchini docet
                         else:
                             return
+                print("macdst arp : " + mac_dst_arp)
                 self.logger.info("[ARP] Request recived")
                 reply_packet = packet.Packet()
                 reply_packet.add_protocol(
@@ -100,8 +102,12 @@ class LoadBalancer(app_manager.RyuApp):
             out_port = server  # // IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
 
             # FlowMod in ingresso
-            match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
-                                    ipv4_dst=self.VIRTUAL_IP, eth_dst=self.VIRTUAL_MAC)
+            match = parser.OFPMatch(
+                eth_type=ETH_TYPE_IP,
+                ip_proto=pkt_ipv4.proto,
+                eth_src=macsrc,
+                eth_dst=self.VIRTUAL_MAC
+            )
             print("macsrc is: " + macsrc)  # debug
             print("macdst is: " + pkt_eth.dst)
             print("server is: " + str(server))
@@ -119,8 +125,12 @@ class LoadBalancer(app_manager.RyuApp):
             datapath.send_msg(ofmsg)
 
             # FlowMod in uscita
-            match = parser.OFPMatch(in_port=out_port, eth_type=ETH_TYPE_IP, ip_proto=pkt_ipv4.proto,
-                                    ipv4_src=ipdst, eth_src=macdst)
+            match = parser.OFPMatch(
+                eth_type=ETH_TYPE_IP,
+                ip_proto=pkt_ipv4.proto,
+                eth_src=macdst,
+                eth_dst=macsrc
+            )
             actions = [
                 parser.OFPActionSetField(eth_src=self.VIRTUAL_MAC),
                 parser.OFPActionSetField(ipv4_src=self.VIRTUAL_IP),
