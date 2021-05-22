@@ -84,7 +84,7 @@ class LoadBalancer(app_manager.RyuApp):
                 packet_out = parser.OFPPacketOut(
                     datapath=datapath,
                     buffer_id=ofproto.OFP_NO_BUFFER,
-                    in_port=ofproto.OFPP_ANY,
+                    in_port=ofproto.OFPP_CONTROLLER,
                     data=reply_packet.data,
                     actions=actions
                 )
@@ -106,6 +106,7 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_type=ETH_TYPE_IP,
                 ip_proto=pkt_ipv4.proto,
                 eth_src=macsrc,
+                tcp_src=pkt_tcp.src_port,
                 eth_dst=self.VIRTUAL_MAC
             )
             print("macsrc is: " + macsrc)  # debug
@@ -129,6 +130,7 @@ class LoadBalancer(app_manager.RyuApp):
                 eth_type=ETH_TYPE_IP,
                 ip_proto=pkt_ipv4.proto,
                 eth_src=macdst,
+                tcp_dst=pkt_tcp.src_port,
                 eth_dst=macsrc
             )
             actions = [
