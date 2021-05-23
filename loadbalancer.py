@@ -57,11 +57,11 @@ class LoadBalancer(app_manager.RyuApp):
                     for host in get_all_host(self):
                         if pkt_arp.dst_ip in host.ipv4:
                             mac_dst_arp = host.mac
-                            print("macdst arp loop is: " + mac_dst_arp)
                             break # qualcosa di piu' carino del break? Bolchini docet
-                        else:
-                            return
-                print("macdst arp : " + mac_dst_arp)
+                    else:
+                        print("MAC address" + mac_dst_arp+ "not found")
+                        return
+                print("macdst arp is: : " + mac_dst_arp)
                 self.logger.info("[ARP] Request recived")
                 reply_packet = packet.Packet()
                 reply_packet.add_protocol(
