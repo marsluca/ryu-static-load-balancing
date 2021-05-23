@@ -14,23 +14,24 @@ class LoadBalancer(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     VIRTUAL_IP = '10.0.1.100'
-    VIRTUAL_MAC = '00:00:00:00:01:00'  # controllare in specifica!!! da aggiungere
+    VIRTUAL_MAC = '00:00:00:00:01:00'
+    SERVER_NUMBER = 2
 
-    # CONFIG_DISPATCHER, gestione Features Reply
+    # CONFIG_DISPATCHER, Handle Features Reply
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
         datapath = ev.msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        # Manda al controllore tutti i pacchetti
+        # Send all packet to the controller
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         mod = parser.OFPFlowMod(datapath=datapath, priority=1, match=match, instructions=inst)  # priorità inferiore?
         datapath.send_msg(mod)
 
-    # MAIN_DISPATCHER, gestione dell'evento PacketIn
+    # MAIN_DISPATCHER, handle packet-In
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
@@ -39,7 +40,7 @@ class LoadBalancer(app_manager.RyuApp):
         parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
 
-        # Estraiamo gli header del pacchetto
+        # Obtain packet headers
         pkt = packet.Packet(msg.data)
         pkt_eth = pkt.get_protocol(ethernet.ethernet)
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
@@ -48,7 +49,7 @@ class LoadBalancer(app_manager.RyuApp):
 
         macsrc = pkt_eth.src
 
-        # Handle ARP
+        # Handle ARP packets
         if pkt_eth.ethertype == ether_types.ETH_TYPE_ARP:
             pkt_arp = pkt.get_protocol(arp.arp)
             if pkt_arp.opcode == arp.ARP_REQUEST:
@@ -60,7 +61,7 @@ class LoadBalancer(app_manager.RyuApp):
                             mac_dst_arp = host.mac
                             break # qualcosa di piu' carino del break? Bolchini docet
                     else:
-                        self.logger.info("ARP MAC address not found")
+                        self.logger.info("[ARP] MAC address not found")
                         return
                 self.logger.info("[ARP] Request recived")
                 self.logger.info("[ARP] MAC destination is: " + mac_dst_arp)
@@ -94,17 +95,18 @@ class LoadBalancer(app_manager.RyuApp):
                 self.logger.info("[ARP] Reply sent!")
                 return
 
-        # Consideriamo solo i pacchetti IPv4
+        # Handle IPv4 packets
         if pkt_ipv4 is not None:
+            # Handle TCP packets
             if pkt_tcp is not None:
                 # gestione pacchetto.. (Lucio)
-                server = hash((pkt_ipv4.src, pkt_tcp.src_port)) % 2
+                server = hash((pkt_ipv4.src, pkt_tcp.src_port)) % self.SERVER_NUMBER
                 server = server + 1  # per avere 1 o 2 come valori
                 ipdst = "10.0.1." + str(server)
                 macdst = "00:00:00:00:01:0" + str(server)
                 out_port = server  # // IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
 
-                # FlowMod in ingresso
+                # Inbound FlowMod
                 match = parser.OFPMatch(
                     eth_type=ETH_TYPE_IP,
                     ip_proto=pkt_ipv4.proto,
@@ -128,7 +130,7 @@ class LoadBalancer(app_manager.RyuApp):
                 )
                 datapath.send_msg(ofmsg)
 
-                # FlowMod in uscita
+                # Outbound FlowMod
                 match = parser.OFPMatch(
                     eth_type=ETH_TYPE_IP,
                     ip_proto=pkt_ipv4.proto,
@@ -151,13 +153,13 @@ class LoadBalancer(app_manager.RyuApp):
                 )
                 datapath.send_msg(ofmsg)
 
-                # modifichiamo il pacchetto con i nuovi dati
+                # Change packet data
                 pkt_eth.dst = macdst
                 pkt_ipv4.dst = ipdst
                 pkt_tcp.csum = 0
                 pkt.serialize()
 
-                # faccio il packet out
+                # Packet-Out
                 actions = [parser.OFPActionOutput(out_port)]
                 out = parser.OFPPacketOut(
                     datapath=datapath,
@@ -167,6 +169,7 @@ class LoadBalancer(app_manager.RyuApp):
                     data=msg.data
                 )
                 datapath.send_msg(out)
+            # Handle ICMP packets
             elif pkt_icmp is not None:
                 if pkt_icmp.type == icmp.ICMP_ECHO_REQUEST:
                     if pkt_ipv4.dst == self.VIRTUAL_IP:
@@ -210,9 +213,9 @@ class LoadBalancer(app_manager.RyuApp):
                     self.logger.info("[ICMP] Reply sent!")
                     return
             else:
-                print("IP packet non in specifications")
+                self.logger.info("IP packet not in the specifications")
                 return
-        # Droppo i pacchetti non inerenti alla specifica
+        # Drop packet types not in the specifications
         else:
-            print("Not IPv4 packet")
+            #self.logger.info("Not IPv4 packet") #stampa troppa merda
             return
