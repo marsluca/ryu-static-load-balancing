@@ -7,7 +7,7 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ether_types
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import tcp, arp, ipv4, icmp
-from ryu.topology.api import get_all_switch, get_all_link, get_all_host
+from ryu.topology.api import get_all_host
 
 
 class LoadBalancer(app_manager.RyuApp):
@@ -28,7 +28,12 @@ class LoadBalancer(app_manager.RyuApp):
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        mod = parser.OFPFlowMod(datapath=datapath, priority=1, match=match, instructions=inst)  # priorità inferiore?
+        mod = parser.OFPFlowMod(
+            datapath=datapath,
+            priority=1,
+            match=match,
+            instructions=inst
+        )
         datapath.send_msg(mod)
 
     # MAIN_DISPATCHER, handle packet-In
@@ -54,16 +59,17 @@ class LoadBalancer(app_manager.RyuApp):
             pkt_arp = pkt.get_protocol(arp.arp)
             if pkt_arp.opcode == arp.ARP_REQUEST:
                 if pkt_arp.dst_ip == self.VIRTUAL_IP:
-                    mac_dst_arp=self.VIRTUAL_MAC
+                    mac_dst_arp = self.VIRTUAL_MAC
                 else:
-                    for host in get_all_host(self):
+                    hosts = get_all_host(self)
+                    for host in hosts:
                         if pkt_arp.dst_ip in host.ipv4:
                             mac_dst_arp = host.mac
-                            break # qualcosa di piu' carino del break? Bolchini docet
+                            break
                     else:
                         self.logger.info("[ARP] MAC address not found")
                         return
-                self.logger.info("[ARP] Request recived")
+                self.logger.info("[ARP] Request received")
                 self.logger.info("[ARP] MAC destination is: " + mac_dst_arp)
                 reply_packet = packet.Packet()
                 reply_packet.add_protocol(
@@ -114,12 +120,10 @@ class LoadBalancer(app_manager.RyuApp):
                     tcp_src=pkt_tcp.src_port,
                     eth_dst=self.VIRTUAL_MAC
                 )
-                #print("macsrc is: " + macsrc)  # debug
-                #print("macdst is: " + pkt_eth.dst)
                 self.logger.info("server is: " + str(server))
                 actions = [parser.OFPActionSetField(eth_dst=macdst),
-                        parser.OFPActionSetField(ipv4_dst=ipdst),
-                        parser.OFPActionOutput(out_port)]
+                           parser.OFPActionSetField(ipv4_dst=ipdst),
+                           parser.OFPActionOutput(out_port)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 ofmsg = parser.OFPFlowMod(
                     datapath=datapath,
@@ -173,10 +177,10 @@ class LoadBalancer(app_manager.RyuApp):
             elif pkt_icmp is not None:
                 if pkt_icmp.type == icmp.ICMP_ECHO_REQUEST:
                     if pkt_ipv4.dst == self.VIRTUAL_IP:
-                        mac_icmp=self.VIRTUAL_MAC
+                        mac_icmp = self.VIRTUAL_MAC
                     else:
-                        mac_icmp=pkt_eth.dst
-                    self.logger.info("[ICMP] Request recived")
+                        mac_icmp = pkt_eth.dst
+                    self.logger.info("[ICMP] Request received")
                     reply_icmp = packet.Packet()
                     reply_icmp.add_protocol(
                         ethernet.ethernet(
@@ -213,9 +217,7 @@ class LoadBalancer(app_manager.RyuApp):
                     self.logger.info("[ICMP] Reply sent!")
                     return
             else:
-                self.logger.info("IP packet not in the specifications")
                 return
         # Drop packet types not in the specifications
         else:
-            #self.logger.info("Not IPv4 packet") #stampa troppa merda
             return
