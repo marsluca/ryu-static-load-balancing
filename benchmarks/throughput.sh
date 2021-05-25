@@ -12,8 +12,8 @@ fi
 
 n_conn="1 10 100 500 1000"
 
-mkdir -p throughput_benchmark
-cd throughput_benchmark
+mkdir -p executed_benchmark
+cd executed_benchmark
 
 for N in $n_conn; do
 	echo "Inizio test con $N connessioni..."

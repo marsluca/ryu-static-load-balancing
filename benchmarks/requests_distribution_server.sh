@@ -8,9 +8,12 @@ fi
 
 filename="request_distribution_$1.log"
 
+mkdir -p executed_benchmark
+cd executed_benchmark
+
 echo When you finish to test press Ctrl+C to show the stats
 #Stop when find the HEAD request
-bash mininet/util/m "$1" python3 -m http.server 80 > "$filename" 2>&1
+bash /home/vagrant/mininet/util/m "$1" python3 -m http.server 80 > "$filename" 2>&1
 
 file_lenght=$(cat "$filename" | wc -l)
 lenght=$(($file_lenght - 3))

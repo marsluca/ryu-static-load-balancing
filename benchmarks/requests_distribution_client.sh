@@ -8,6 +8,7 @@ fi
 
 #2 because one request is the HEAD request
 i=2
+start=$(date +%s)
 while [ "$i" -le "$3" ]; do
   mininet/util/m "$1" curl -silent --output /dev/null "$2"
   i=$(($i + 1))
@@ -15,3 +16,7 @@ done
 
 #Last request
 mininet/util/m "$1" curl -silent --output /dev/null -X HEAD "$2"
+end=$(date +%s)
+runtime=$( echo "$end - $start" | bc -l )
+
+echo Sent "$3" packets in "$runtime" seconds
