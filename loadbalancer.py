@@ -105,7 +105,6 @@ class LoadBalancer(app_manager.RyuApp):
         if pkt_ipv4 is not None:
             # Handle TCP packets
             if pkt_tcp is not None:
-                # Packet handle
                 server = hash((pkt_ipv4.src, pkt_tcp.src_port)) % self.SERVER_NUMBER
                 server = server + 1
                 ipdst = "10.0.1." + str(server)
