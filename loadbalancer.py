@@ -105,12 +105,12 @@ class LoadBalancer(app_manager.RyuApp):
         if pkt_ipv4 is not None:
             # Handle TCP packets
             if pkt_tcp is not None:
-                # gestione pacchetto.. (Lucio)
+                # Packet handle
                 server = hash((pkt_ipv4.src, pkt_tcp.src_port)) % self.SERVER_NUMBER
-                server = server + 1  # per avere 1 o 2 come valori
+                server = server + 1
                 ipdst = "10.0.1." + str(server)
                 macdst = "00:00:00:00:01:0" + str(server)
-                out_port = server  # // IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
+                out_port = server # Servers must be plugged in port 1 and 2
 
                 # Inbound FlowMod
                 match = parser.OFPMatch(
