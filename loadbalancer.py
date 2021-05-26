@@ -16,6 +16,7 @@ class LoadBalancer(app_manager.RyuApp):
     VIRTUAL_IP = '10.0.1.100'
     VIRTUAL_MAC = '00:00:00:00:01:00'
     SERVER_NUMBER = 2
+    
     # Enable consistent hashing on source port
     HASH_ON_PORT = 1  # True = 1, False = 0
 
@@ -114,7 +115,7 @@ class LoadBalancer(app_manager.RyuApp):
                 server = server + 1
                 ipdst = "10.0.1." + str(server)
                 macdst = "00:00:00:00:01:0" + str(server)
-                out_port = server  # IMPORTANT: Servers must be plugged in port 1 and 2
+                out_port = server  # IMPORTANT: Servers must be connected to port 1 and 2
                 # Inbound FlowMod
                 match = parser.OFPMatch(
                     eth_type=ETH_TYPE_IP,
@@ -176,6 +177,7 @@ class LoadBalancer(app_manager.RyuApp):
                     data=msg.data
                 )
                 datapath.send_msg(out)
+                
             # Handle ICMP packets
             elif pkt_icmp is not None:
                 if pkt_icmp.type == icmp.ICMP_ECHO_REQUEST:
