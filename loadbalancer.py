@@ -178,44 +178,44 @@ class LoadBalancer(app_manager.RyuApp):
                 if pkt_icmp.type == icmp.ICMP_ECHO_REQUEST:
                     if pkt_ipv4.dst == self.VIRTUAL_IP:
                         mac_icmp = self.VIRTUAL_MAC
+                        self.logger.info("[ICMP] Request received")
+                        reply_icmp = packet.Packet()
+                        reply_icmp.add_protocol(
+                            ethernet.ethernet(
+                                ethertype=pkt_eth.ethertype,
+                                dst=pkt_eth.src,
+                                src=mac_icmp
+                            )
+                        )
+                        reply_icmp.add_protocol(
+                            ipv4.ipv4(
+                                dst=pkt_ipv4.src,
+                                src=pkt_ipv4.dst,
+                                proto=pkt_ipv4.proto
+                            )
+                        )
+                        reply_icmp.add_protocol(
+                            icmp.icmp(
+                                type_=icmp.ICMP_ECHO_REPLY,
+                                code=icmp.ICMP_ECHO_REPLY_CODE,
+                                csum=0,
+                                data=pkt_icmp.data
+                            )
+                        )
+                        reply_icmp.serialize()
+                        actions = [parser.OFPActionOutput(in_port)]
+                        packet_out = parser.OFPPacketOut(
+                            datapath=datapath,
+                            buffer_id=ofproto.OFP_NO_BUFFER,
+                            in_port=ofproto.OFPP_CONTROLLER,
+                            data=reply_icmp.data,
+                            actions=actions
+                        )
+                        datapath.send_msg(packet_out)
+                        self.logger.info("[ICMP] Reply sent!")
+                        return
                     else:
-                        mac_icmp = pkt_eth.dst
-                    self.logger.info("[ICMP] Request received")
-                    reply_icmp = packet.Packet()
-                    reply_icmp.add_protocol(
-                        ethernet.ethernet(
-                            ethertype=pkt_eth.ethertype,
-                            dst=pkt_eth.src,
-                            src=mac_icmp
-                        )
-                    )
-                    reply_icmp.add_protocol(
-                        ipv4.ipv4(
-                            dst=pkt_ipv4.src,
-                            src=pkt_ipv4.dst,
-                            proto=pkt_ipv4.proto
-                        )
-                    )
-                    reply_icmp.add_protocol(
-                        icmp.icmp(
-                            type_=icmp.ICMP_ECHO_REPLY,
-                            code=icmp.ICMP_ECHO_REPLY_CODE,
-                            csum=0,
-                            data=pkt_icmp.data
-                        )
-                    )                
-                    reply_icmp.serialize()
-                    actions = [parser.OFPActionOutput(in_port)]
-                    packet_out = parser.OFPPacketOut(
-                        datapath=datapath,
-                        buffer_id=ofproto.OFP_NO_BUFFER,
-                        in_port=ofproto.OFPP_CONTROLLER,
-                        data=reply_icmp.data,
-                        actions=actions
-                    )
-                    datapath.send_msg(packet_out)
-                    self.logger.info("[ICMP] Reply sent!")
-                    return
+                        return
             else:
                 return
         # Drop packet types not in the specifications
