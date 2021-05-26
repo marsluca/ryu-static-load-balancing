@@ -109,16 +109,12 @@ class LoadBalancer(app_manager.RyuApp):
             if pkt_tcp is not None:
                 if self.HASH_ON_PORT == 1:  # Consistent hashing on IPv4 source and TCP source port
                     server = hash((pkt_ipv4.src, pkt_tcp.src_port)) % self.SERVER_NUMBER
-                    server = server + 1  # per avere 1 o 2 come valori
-                    ipdst = "10.0.1." + str(server)
-                    macdst = "00:00:00:00:01:0" + str(server)
-                    out_port = server  # IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
                 else:  # Deterministic routing via consistent hashing only on IPv4 source
                     server = hash((pkt_ipv4.src)) % self.SERVER_NUMBER
-                    server = server + 1  # per avere 1 o 2 come valori
-                    ipdst = "10.0.1." + str(server)
-                    macdst = "00:00:00:00:01:0" + str(server)
-                    out_port = server  # IMPORTANTE: i server devono essere collegati alla porta 1 e 2 dello switch
+                server = server + 1
+                ipdst = "10.0.1." + str(server)
+                macdst = "00:00:00:00:01:0" + str(server)
+                out_port = server  # IMPORTANT: Servers must be plugged in port 1 and 2
                 # Inbound FlowMod
                 match = parser.OFPMatch(
                     eth_type=ETH_TYPE_IP,
