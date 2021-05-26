@@ -2,11 +2,13 @@
 
 ## Throughput test:
 #### Client:
-	sudo ./throughput.sh <CLIENT_NAME> <SERVER_IP>
+	sudo ./throughput_client.sh <CLIENT_NAME> <SERVER_IP>
 Example:
-	sudo ./throughput.sh H1 10.0.1.100
+	sudo ./throughput_client.sh H1 10.0.1.100
 #### Server:
-	netserver &
+	sudo ./throughput_server.sh <SERVER_NAME>
+Example:
+	sudo ./throughput_server.sh SRV1
 
 ## Requests distribution test:
 #### Client:

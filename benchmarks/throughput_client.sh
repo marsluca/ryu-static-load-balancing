@@ -10,14 +10,14 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
-n_conn="1 10 100 500 1000"
+n_conn="1 10 50 75 100"
 
 mkdir -p executed_benchmark
 cd executed_benchmark
 
 for N in $n_conn; do
 	echo "Inizio test con $N connessioni..."
-	/home/vagrant/mininet/util/m $1 flent tcp_1down --test-parameter=download_streams=$N --no-annotation -p box_totals -l 600 -H $2 --figure-note=" " --bounds-y 0,1000 --bounds-y 0,10 -o out_$N.png
+	/home/vagrant/mininet/util/m $1 flent tcp_ndown --test-parameter=download_streams=$N --no-annotation -p box_totals -l 60 -H $2 --figure-note=" " --bounds-y 0,1000 --bounds-y 0,10 -o out_$N.png
 done
 
 sudo chown -R vagrant "$pwd"
