@@ -124,7 +124,7 @@ class LoadBalancer(app_manager.RyuApp):
                     tcp_src=pkt_tcp.src_port,
                     eth_dst=self.VIRTUAL_MAC
                 )
-                self.logger.info("server is: " + str(server))
+                self.logger.info("[HASH] Chosen server is: SRV" + str(server))
                 actions = [parser.OFPActionSetField(eth_dst=macdst),
                            parser.OFPActionSetField(ipv4_dst=ipdst),
                            parser.OFPActionOutput(out_port)]
