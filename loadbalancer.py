@@ -42,6 +42,7 @@ class LoadBalancer(app_manager.RyuApp):
     # MAIN_DISPATCHER, handle packet-In
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
+        logger.setLevel('INFO')  # Set to "INFO" for more information, "ERROR" to suppress output
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
