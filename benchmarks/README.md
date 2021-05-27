@@ -12,9 +12,9 @@ Example:
 
 ## Requests distribution test:
 #### Client:
-	./requests_distribution_server.sh <CLIENT_NAME> <SERVER_IP> <REQUEST_NUMBER>
+	./requests_distribution_client.sh <CLIENT_NAME> <SERVER_IP> <REQUEST_NUMBER>
 Example:
-	./requests_distribution_server.sh H2 10.0.1.100 100
+	./requests_distribution_client.sh H2 10.0.1.100 100
 #### Server:
 	./requests_distribution_server.sh <SERVER_NAME>
 Example:
