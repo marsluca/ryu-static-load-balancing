@@ -116,6 +116,24 @@ class LoadBalancer(app_manager.RyuApp):
                 ipdst = "10.0.1." + str(server)
                 macdst = "00:00:00:00:01:0" + str(server)
                 out_port = server  # IMPORTANT: Servers must be connected to port 1 and 2
+                
+                # Change packet data
+                pkt_eth.dst = macdst
+                pkt_ipv4.dst = ipdst
+                pkt_tcp.csum = 0
+                pkt.serialize()
+
+                # Packet-Out
+                actions = [parser.OFPActionOutput(out_port)]
+                out = parser.OFPPacketOut(
+                    datapath=datapath,
+                    buffer_id=ofproto.OFP_NO_BUFFER,
+                    in_port=in_port,
+                    actions=actions,
+                    data=msg.data
+                )
+                datapath.send_msg(out)
+                
                 # Inbound FlowMod
                 match = parser.OFPMatch(
                     eth_type=ETH_TYPE_IP,
@@ -160,24 +178,7 @@ class LoadBalancer(app_manager.RyuApp):
                     instructions=inst,
                 )
                 datapath.send_msg(ofmsg)
-
-                # Change packet data
-                pkt_eth.dst = macdst
-                pkt_ipv4.dst = ipdst
-                pkt_tcp.csum = 0
-                pkt.serialize()
-
-                # Packet-Out
-                actions = [parser.OFPActionOutput(out_port)]
-                out = parser.OFPPacketOut(
-                    datapath=datapath,
-                    buffer_id=ofproto.OFP_NO_BUFFER,
-                    in_port=in_port,
-                    actions=actions,
-                    data=msg.data
-                )
-                datapath.send_msg(out)
-                
+               
             # Handle ICMP packets
             elif pkt_icmp is not None:
                 if pkt_icmp.type == icmp.ICMP_ECHO_REQUEST:
